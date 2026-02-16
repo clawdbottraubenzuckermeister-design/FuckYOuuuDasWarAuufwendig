@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Willrich - Klick hier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Splash Screen */
+        #splash {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.8s ease;
+            cursor: pointer;
+        }
+
+        #splash.zoomed {
+            transform: scale(3);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .title-glow {
+            font-size: clamp(2rem, 8vw, 6rem);
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+
+        /* Emoji Screensaver Container */
+        #emoji-container {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 2s ease-in;
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        #emoji-container.visible {
+            opacity: 1;
+        }
+
+        .floating-emoji {
+            position: absolute;
+            font-size: 3rem;
+            user-select: none;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        /* Overlay Inhalt */
+        #content-overlay {
+            position: relative;
+            z-index: 20;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, transparent 10%, rgba(0,0,0,0.8) 90%);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1.5s ease 1s;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        #content-overlay.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Button Styling */
+        .btn-main {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.75rem 2rem;
+            border: 1px solid white;
+            transition: all 0.5s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 0.75rem;
+            width: 280px;
+            text-align: center;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .btn-main:not(:disabled):hover {
+            background-color: white;
+            color: black;
+            cursor: pointer;
+        }
+
+        .btn-locked {
+            opacity: 0.2;
+            cursor: not-allowed;
+            border-color: #444;
+            color: #666;
+        }
+
+        .btn-unlocked {
+            opacity: 1;
+            cursor: pointer;
+            border-color: #00ffcc;
+            color: #00ffcc;
+        }
+        
+        .btn-unlocked:hover {
+            background-color: #00ffcc;
+            color: black;
+            box-shadow: 0 0 15px #00ffcc;
+        }
+
+        .btn-final {
+            border-color: #ffcc00;
+            color: #ffcc00;
+        }
+
+        .btn-final:hover {
+            background-color: #ffcc00;
+            color: black;
+            box-shadow: 0 0 15px #ffcc00;
+        }
+
+        .btn-extra {
+            border-color: #ff00ff;
+            color: #ff00ff;
+            display: none;
+        }
+
+        .btn-extra:hover {
+            background-color: #ff00ff;
+            color: black;
+            box-shadow: 0 0 15px #ff00ff;
+        }
+
+        #final-message {
+            margin-top: 2rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffcc00;
+            display: none;
+            text-shadow: 0 0 15px rgba(0,0,0,1), 0 0 5px rgba(255, 204, 0, 0.5);
+            animation: fadeIn 1s ease forwards;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Video Modal Styles */
+        #video-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .video-wrapper {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16 / 9;
+            background: #111;
+            box-shadow: 0 0 50px rgba(0,255,204,0.2);
+            position: relative;
+        }
+
+        .close-btn {
+            margin-top: 20px;
+            padding: 10px 30px;
+            background: white;
+            color: black;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #ff0055;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .video-hint {
+            margin-top: 15px;
+            color: #ccc;
+            font-size: 0.8rem;
+            max-width: 500px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Timer Styling */
+        #birth-timer {
+            font-weight: 900;
+            color: #ff0055;
+            text-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        #image-container {
+            margin-top: 20px;
+            max-width: 300px;
+            display: none;
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 20px #ff00ff;
+            animation: fadeIn 1s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen -->
+    <div id="splash" onclick="revealSite()">
+        <h1 class="title-glow mb-4">WILLRICH</h1>
+        <p class="text-gray-400 tracking-[0.5em] uppercase text-sm animate-bounce">Klick hier Willrich</p>
+    </div>
+
+    <!-- Video Modal Container -->
+    <div id="video-modal">
+        <div class="video-wrapper">
+            <iframe id="video-iframe" width="100%" height="100%" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <button onclick="closeVideo()" class="close-btn">Schließen & Weiter</button>
+        <p class="video-hint">Falls das Video nicht abgespielt wird, bitte auf "Auf YouTube ansehen" drücken – ich habe mir Mühe gegeben!</p>
+    </div>
+
+    <!-- Emoji Screensaver Hintergrund -->
+    <div id="emoji-container"></div>
+
+    <!-- Website Inhalt -->
+    <div id="content-overlay">
+        <div class="text-center px-4">
+            <!-- Geburts-Timer -->
+            <div id="birth-timer" class="text-2xl md:text-4xl">
+                Lade Zähler...
+            </div>
+
+            <h2 class="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg"> 🎂🖕WILLKOMMEN 🖕 🎂</h2>
+            <p class="max-w-xl mx-auto text-gray-100 text-lg leading-relaxed mb-8 font-medium drop-shadow-md">
+                Du wirst in einem neuen Tab weitergeleietet ging leider nicht anders... Es ist nicht schlimmes oder doch? 
+					#Komm nach dem Video auf diese Seite zurück es geht noch weiter!!!
+🖕🖕🖕Wenn du nicht zu dieser Seite/ diesem Tab zurückkommst, dann hoff ich dass dir beide Ärmel beim Händewaschen runterrutschen 🖕🖕🖕
+            </p>
+            
+            <div class="flex flex-col items-center space-y-4">
+                <button id="videoBtn" onclick="playVideo('dQw4w9WgXcQ', 1)" class="btn-main">
+                    Mehr erfahren
+                </button>
+
+                <button id="lockedBtn" disabled class="btn-main btn-locked">
+                    Geheim 🖕🖕🖕🔒🖕🖕🖕
+                </button>
+
+                <button id="finalBtn" disabled class="btn-main btn-locked">
+                  ♿♿♿♿  Das Ende? 🔒♿♿♿♿
+                </button>
+
+                <div id="final-message">
+                    31 420 69 67<br>
+                    Alles gute unc kannst meine letzen 10er haben passt steam? <br>
+                    Das zweite Video war echt cool oder nicht? Ich weiß, ist echt cool geworden, habe ich toll gemacht, Alles Gute 🔥♿🎂🖕🔥-->♿<--🔥🖕🎂♿🔥
+                </div>
+
+                <button id="extraBtn" class="btn-main btn-extra">
+                    🎁 Klick für Überraschung 🎁
+                </button>
+
+                <div id="image-container">
+                    <img id="google-image" src="" alt="Überraschung" class="w-full">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const emojis = ['🎂', '🎉', '😂', '🔥', '✨', '♿', '🩺', '🖕'];
+        const emojiCount = 40;
+        let animationStarted = false;
+        let currentStep = 0;
+
+        // Timer Logik: Willrich wurde am 16.02.1995 geboren
+        const birthDate = new Date("1995-02-16T00:00:00");
+
+        function updateTimer() {
+            const now = new Date();
+            const diffInMs = now - birthDate;
+            const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+            
+            const timerElement = document.getElementById('birth-timer');
+            if (timerElement) {
+                timerElement.innerText = `Bro wurde vor genau ungefähr ${diffInMinutes.toLocaleString('de-DE')} Minuten geboren 🥀🥀🥀`;
+            }
+        }
+
+        setInterval(updateTimer, 60000);
+        updateTimer();
+
+        function createEmoji() {
+            const container = document.getElementById('emoji-container');
+            const emojiEl = document.createElement('div');
+            emojiEl.className = 'floating-emoji';
+            emojiEl.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            let x = Math.random() * (window.innerWidth - 50);
+            let y = Math.random() * (window.innerHeight - 50);
+            
+            let dx = (Math.random() - 0.5) * 4;
+            let dy = (Math.random() - 0.5) * 4;
+
+            emojiEl.style.transform = `translate(${x}px, ${y}px)`;
+            container.appendChild(emojiEl);
+
+            function update() {
+                if (!animationStarted) return;
+                x += dx;
+                y += dy;
+                if (x <= 0 || x >= window.innerWidth - 50) dx *= -1;
+                if (y <= 0 || y >= window.innerHeight - 50) dy *= -1;
+                emojiEl.style.transform = `translate(${x}px, ${y}px)`;
+                requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        }
+
+        function revealSite() {
+            const splash = document.getElementById('splash');
+            const bgContainer = document.getElementById('emoji-container');
+            const content = document.getElementById('content-overlay');
+
+            splash.classList.add('zoomed');
+            animationStarted = true;
+
+            for (let i = 0; i < emojiCount; i++) {
+                createEmoji();
+            }
+
+            setTimeout(() => bgContainer.classList.add('visible'), 500);
+            setTimeout(() => content.classList.add('show'), 800);
+        }
+
+        function playVideo(id, step) {
+            currentStep = step;
+            const modal = document.getElementById('video-modal');
+            const iframe = document.getElementById('video-iframe');
+            
+            iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+            modal.style.display = 'flex';
+        }
+
+        function closeVideo() {
+            const modal = document.getElementById('video-modal');
+            const iframe = document.getElementById('video-iframe');
+            iframe.src = ""; 
+            modal.style.display = 'none';
+
+            if (currentStep === 1) {
+                unlockSecond();
+            } else if (currentStep === 2) {
+                unlockThird();
+            }
+        }
+
+        function unlockSecond() {
+            const btn = document.getElementById('lockedBtn');
+            btn.disabled = false;
+            btn.classList.remove('btn-locked');
+            btn.classList.add('btn-unlocked');
+            btn.innerText = "❗❗❗ Dieses Video ansehen Wichtig ❗❗❗ klick hier ❗❗❗ ";
+            btn.onclick = () => playVideo('6qhxBupIfnc', 2);
+        }
+
+        function unlockThird() {
+            const btn = document.getElementById('finalBtn');
+            btn.disabled = false;
+            btn.classList.remove('btn-locked');
+            btn.classList.add('btn-unlocked', 'btn-final');
+            btn.innerText = "ALLES gute zum 31er - Letzter Schritt 🔓";
+            btn.onclick = () => {
+                document.getElementById('final-message').style.display = 'block';
+                btn.style.display = 'none';
+                // Schaltet den vierten Button frei
+                unlockExtra();
+            };
+        }
+
+        function unlockExtra() {
+            const extraBtn = document.getElementById('extraBtn');
+            extraBtn.style.display = 'inline-block';
+            extraBtn.onclick = () => {
+                const imgContainer = document.getElementById('image-container');
+                const img = document.getElementById('google-image');
+                // Lokale GIF-Datei anzeigen
+                img.src = "./a9a9ce4d2e68819ef1f825b025347070.gif";
+                imgContainer.style.display = 'block';
+                extraBtn.innerText = "So genug Schabernack, gehe pennen es ist schon 1:48 morgens 🖕🎂";
+                // Scroll zum Bild
+                imgContainer.scrollIntoView({ behavior: 'smooth' });
+            };
+        }
+
+        window.addEventListener('resize', () => {});
+    </script>
+</body>
+</html>
